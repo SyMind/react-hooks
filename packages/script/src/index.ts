@@ -22,14 +22,16 @@ const loadScript = (src: string): Promise<void> => {
             () => {
                 CACHE[src] = true;
                 resolve();
-            }
+            },
+            {once: true}
         );
         script.addEventListener(
             'error',
             () => {
                 CACHE[src] = false;
                 reject();
-            }
+            },
+            {once: true}
         );
         document.head.appendChild(script);
     };
@@ -52,8 +54,18 @@ export function useScript(src?: string): [boolean, boolean] {
                 return;
             }
 
+            let unmounted = false;
             const loading = loadScript(src);
-            loading.then(forceUpdate, forceUpdate);
+            loading.finally(() => {
+                if (unmounted) {
+                    return;
+                }
+                forceUpdate();
+            });
+
+            return () => {
+                unmounted = true;
+            };
         },
         [forceUpdate, src]
     );
